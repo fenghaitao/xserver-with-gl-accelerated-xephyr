@@ -451,7 +451,11 @@ ephyrGLXCreateContextReal (xGLXCreateContextReq *a_req, Bool a_do_swap)
     EPHYR_LOG ("host window visual id: %d\n", host_w_attrs.visualid) ;
 
     if (!ephyrHostGLXCreateContext (a_req->screen,
+#if DRI2
+                                    a_req->visual,
+#else
                                     host_w_attrs.visualid,
+#endif
                                     a_req->context,
                                     a_req->shareList,
                                     a_req->isDirect)) {

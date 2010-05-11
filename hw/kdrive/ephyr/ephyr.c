@@ -31,12 +31,18 @@
 #include "inputstr.h"
 #include "scrnintstr.h"
 #include "ephyrlog.h"
+#include "compint.h"
 
 #ifdef XF86DRI
 #include "ephyrdri.h"
 #include "ephyrdriext.h"
 #include "ephyrglxext.h"
 #endif /* XF86DRI */
+
+#ifdef DRI2
+#include "ephyrdri2ext.h"
+#include "ephyrglxext.h"
+#endif
 
 extern int KdTsPhyScreen;
 #ifdef GLXEXT
@@ -47,6 +53,7 @@ KdKeyboardInfo *ephyrKbd;
 KdPointerInfo *ephyrMouse;
 EphyrKeySyms ephyrKeySyms;
 Bool ephyrNoDRI=FALSE ;
+Bool ephyrNoDRI2=FALSE ;
 Bool ephyrNoXV=FALSE ;
 
 static int mouseState = 0;
@@ -658,8 +665,20 @@ ephyrInitScreen (ScreenPtr pScreen)
   }
 #endif
 
+#ifdef DRI2
+  if (!ephyrNoDRI2 && !hostx_has_dri2 ()) {
+      EPHYR_LOG ("host x does not support DRI2. Disabling DRI2 forwarding\n") ;
+      ephyrNoDRI2 = TRUE ;
+  }
+
+  if (ephyrNoDRI && !ephyrNoDRI2) {
+    ephyrDRI2ExtensionInit (pScreen) ;
+    ephyrHijackGLXExtension () ;
+  }
+#endif
+
 #ifdef GLXEXT
-  if (ephyrNoDRI) {
+  if (ephyrNoDRI || ephyrNoDRI2) {
       noGlxVisualInit = FALSE ;
   }
 #endif
@@ -940,24 +959,47 @@ ephyrPoll(void)
 #ifdef XF86DRI
                   EphyrWindowPair *pair = NULL;
 #endif
+#ifdef DRI2
+                  EphyrDRI2WindowPair *dri2_pair = NULL;
+#endif
                   EPHYR_LOG ("enqueuing mouse motion:%d\n", ephyrCurScreen) ;
                   x = ev.data.mouse_motion.x;
                   y = ev.data.mouse_motion.y;
                   EPHYR_LOG ("initial (x,y):(%d,%d)\n", x, y) ;
 #ifdef XF86DRI
-                  EPHYR_LOG ("is this window peered by a gl drawable ?\n") ;
-                  if (findWindowPairFromRemote (ev.data.mouse_motion.window,
-                                                &pair))
-                    {
-                        EPHYR_LOG ("yes, it is peered\n") ;
-                        x += pair->local->drawable.x;
-                        y += pair->local->drawable.y;
-                    }
-                  else
-                    {
-                        EPHYR_LOG ("no, it is not peered\n") ;
-                    }
-                  EPHYR_LOG ("final (x,y):(%d,%d)\n", x, y) ;
+                  if (!ephyrNoDRI){
+                      EPHYR_LOG ("is this window peered by a gl drawable ?\n") ;
+                      if (findWindowPairFromRemote (ev.data.mouse_motion.window,
+                                                    &pair))
+                      {
+                          EPHYR_LOG ("yes, it is peered\n") ;
+                          x += pair->local->drawable.x;
+                          y += pair->local->drawable.y;
+                      }
+                      else
+                      {
+                          EPHYR_LOG ("no, it is not peered\n") ;
+                      }
+                      EPHYR_LOG ("final (x,y):(%d,%d)\n", x, y) ;
+                  }
+#endif
+
+#ifdef DRI2
+                  if (ephyrNoDRI && !ephyrNoDRI2) {
+                      EPHYR_LOG ("is this window peered by a gl drawable ?\n") ;
+                      if (findDRI2WindowPairFromRemote (ev.data.mouse_motion.window,
+                                                &dri2_pair))
+                      {
+                          EPHYR_LOG ("yes, it is peered\n") ;
+                          x += dri2_pair->local->drawable.x;
+                          y += dri2_pair->local->drawable.y;
+                      }
+                      else
+                      {
+                          EPHYR_LOG ("no, it is not peered\n") ;
+                      }
+                      EPHYR_LOG ("final (x,y):(%d,%d)\n", x, y) ;
+                  }
 #endif
                   KdEnqueuePointerEvent(ephyrMouse, mouseState, x, y, 0);
               }

@@ -57,10 +57,12 @@
 #include <X11/keysym.h>
 #include <X11/extensions/XShm.h>
 #include <X11/extensions/shape.h>
-#ifdef XF86DRI
+
+#if defined(XF86DRI) || defined(DRI2)
 #include <GL/glx.h>
 #endif /* XF86DRI */
 #include "ephyrlog.h"
+#include "ephyrdri2ext.h"
 
 #ifdef XF86DRI
 extern Bool XF86DRIQueryExtension (Display *dpy,
@@ -1350,7 +1352,7 @@ hostx_has_xshape (void)
     return TRUE;
 }
 
-#ifdef XF86DRI
+#if defined(XF86DRI) || defined(DRI2)
 typedef struct {
     int is_valid ;
     int local_id ;
@@ -1425,6 +1427,21 @@ hostx_get_resource_id_peer (int a_local_resource_id,
 }
 
 int
+hostx_has_glx (void)
+{
+    Display *dpy=hostx_get_display () ;
+    int event_base=0, error_base=0 ;
+
+    if (!glXQueryExtension (dpy, &event_base, &error_base)) {
+        return FALSE ;
+    }
+    return TRUE ;
+}
+
+#endif
+
+#ifdef XF86DRI
+int
 hostx_has_dri (void)
 {
     int event_base=0, error_base=0 ;
@@ -1440,17 +1457,23 @@ hostx_has_dri (void)
     }
     return TRUE ;
 }
+#endif /* XF86DRI */
 
+#ifdef DRI2
 int
-hostx_has_glx (void)
+hostx_has_dri2 (void)
 {
-    Display *dpy=hostx_get_display () ;
     int event_base=0, error_base=0 ;
+    Display *dpy=hostx_get_display () ;
 
-    if (!glXQueryExtension (dpy, &event_base, &error_base)) {
+    if (!dpy)
+        return FALSE ;
+
+    if (!DRI2QueryExtension (dpy,
+                                &event_base,
+                                &error_base)) {
         return FALSE ;
     }
     return TRUE ;
 }
-
-#endif /* XF86DRI */
+#endif
