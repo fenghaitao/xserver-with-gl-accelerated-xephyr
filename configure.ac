@@ -2052,6 +2052,9 @@ if test "$KDRIVE" = yes; then
     if test "x$DRI" = xyes && test "x$GLX" = xyes; then
         XEPHYR_REQUIRED_LIBS="$XEPHYR_REQUIRED_LIBS $LIBGL libdrm"
     fi
+    if test "x$DRI2" = xyes && test "x$GLX" = xyes; then
+        XEPHYR_REQUIRED_LIBS="$XEPHYR_REQUIRED_LIBS xcomposite"
+    fi
 
     PKG_CHECK_MODULES(XEPHYR, $XEPHYR_REQUIRED_LIBS, [xephyr="yes"], [xephyr="no"])
     if test "x$XEPHYR" = xauto; then

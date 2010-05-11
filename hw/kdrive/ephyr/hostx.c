@@ -57,10 +57,12 @@
 #include <X11/keysym.h>
 #include <X11/extensions/XShm.h>
 #include <X11/extensions/shape.h>
-
 #if defined(XF86DRI) || defined(DRI2)
 #include <GL/glx.h>
 #endif /* XF86DRI */
+#if DRI2
+#include <X11/extensions/Xcomposite.h>
+#endif
 #include "ephyrlog.h"
 #include "ephyrdri2ext.h"
 
@@ -1171,6 +1173,32 @@ out:
 
 }
 
+#if DRI2
+int
+hostx_copy_region (XID drawable,
+                       EphyrDRI2WindowPair *pair,
+                       RegionPtr pRegion,
+                       int sx,
+                       int sy)
+{
+    Display *dpy=hostx_get_display () ;
+    XImage *img;
+    int width, height;
+
+    width  = pRegion->extents.x2 - pRegion->extents.x1;
+    height = pRegion->extents.y2 - pRegion->extents.y1;
+
+    img = XGetImage(dpy, pair->remote, 0, 0, width, height, 0xffffffff, ZPixmap);
+
+    if (img){
+        ephyrPaintPairedLocalWindow(pair->remote, img->depth, img->data, sx, sy, width, height);
+        XDestroyImage(img);
+    }
+
+    return 0;
+}
+#endif
+
 int
 hostx_create_window (int a_screen_number,
                      EphyrBox *a_geometry,
@@ -1206,12 +1234,14 @@ hostx_create_window (int a_screen_number,
                                                   visual_info->screen),
                                       visual_info->visual,
                                       AllocNone) ;
+#ifndef DRI2
     attrs.event_mask = ButtonPressMask
                        |ButtonReleaseMask
                        |PointerMotionMask
                        |KeyPressMask
                        |KeyReleaseMask
                        |ExposureMask;
+#endif
     winmask = CWColormap|CWEventMask;
 
     win = XCreateWindow (dpy, hostx_get_window (a_screen_number),
@@ -1224,13 +1254,16 @@ hostx_create_window (int a_screen_number,
         goto out ;
     }
     if (HostX.screens[a_screen_number].peer_win == None) {
-	HostX.screens[a_screen_number].peer_win = win;
+        HostX.screens[a_screen_number].peer_win = win;
     } else {
         EPHYR_LOG_ERROR ("multiple peer windows created for same screen\n") ;
     }
     XFlush (dpy) ;
     XMapWindow (dpy, win) ;
     *a_host_peer = win ;
+#if DRI2
+    XCompositeRedirectWindow (dpy, win, CompositeRedirectManual);
+#endif
     is_ok = TRUE ;
 out:
     EPHYR_LOG ("leave\n") ;

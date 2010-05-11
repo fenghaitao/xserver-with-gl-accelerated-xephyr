@@ -923,6 +923,41 @@ ephyrExposePairedWindow (int a_remote)
 }
 #endif /* XF86DRI */
 
+#ifdef DRI2
+void
+ephyrPaintPairedLocalWindow (int a_remote, int depth, char *data, int sx, int sy, int width, int height)
+{
+    EphyrDRI2WindowPair *pair = NULL;
+    RegionRec reg;
+    ScreenPtr screen;
+    GCPtr pGC;
+    XID gcval = FALSE;
+    int status;
+
+    if (!findDRI2WindowPairFromRemote (a_remote, &pair)) {
+        EPHYR_LOG ("did not find a pair for this window\n");
+        return;
+    }
+
+    screen = pair->local->drawable.pScreen;
+
+    pGC = CreateGC((DrawablePtr)pair->local,
+                   GCGraphicsExposures, &gcval,
+                   &status, (XID)0, serverClient);
+    if (pGC) {
+        FbGCPrivPtr pPriv = fbGetGCPrivate(pGC);
+
+        REGION_NULL (screen, &reg);
+        REGION_COPY (screen, &reg, &pair->local->clipList);
+        pGC->pCompositeClip = &reg;
+        pPriv->pm = -1;
+        pGC->ops->PutImage((DrawablePtr)pair->local, pGC, depth, 0, 0, width, height, 0, ZPixmap, data);
+        DamageRegionAppend((DrawablePtr)pair->local, &reg);
+        REGION_UNINIT (screen, &reg);
+    }
+}
+#endif
+
 void
 ephyrPoll(void)
 {
