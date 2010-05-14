@@ -165,11 +165,12 @@ ephyrHostGLXGetStringFromServer (int a_screen_number,
     xGLXGenericGetStringReq *req=NULL;
     xGLXSingleReply reply;
     int length=0, numbytes=0, major_opcode=0, get_string_op=0;
+#if DRI2
     const char *glx_texture_from_pixmap = "GLX_EXT_texture_from_pixmap ";
     char *start = NULL;
     char *end = NULL;
     int pos = 0, len = 0;
-
+#endif
     EPHYR_RETURN_VAL_IF_FAIL (dpy && a_string, FALSE) ;
 
     EPHYR_LOG ("enter\n") ;
@@ -234,6 +235,7 @@ ephyrHostGLXGetStringFromServer (int a_screen_number,
     UnlockDisplay (dpy);
     SyncHandle ();
 
+#if DRI2
     start = strstr(*a_string, glx_texture_from_pixmap);
     if (start){
         EPHYR_LOG ("strname:%#x, strvalue:'%s', strlen:%d\n",
@@ -245,6 +247,7 @@ ephyrHostGLXGetStringFromServer (int a_screen_number,
         EPHYR_LOG ("strname:%#x, strvalue:'%s', strlen:%d\n",
                    a_string_name, *a_string, numbytes) ;
     }
+#endif
 
     is_ok = TRUE ;
 out:

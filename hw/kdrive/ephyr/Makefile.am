@@ -28,6 +28,25 @@ HOSTVIDEO_SRCS =		\
 	ephyrhostvideo.c	\
 	ephyrhostvideo.h
 
+if DRI2
+HOSTDRI_SRCS =                  \
+	ephyrdri2ext.c		\
+	ephyrdri2ext.h		\
+	ephyrdri2.c		\
+	ephyrdri2.h		\
+	dri2.c			\
+	dri2.h			\
+	ephyrdriext.c		\
+	ephyrdriext.h		\
+	ephyrdri.c		\
+	ephyrdri.h		\
+	XF86dri.c		\
+	xf86dri.h		\
+	ephyrglxext.c		\
+	ephyrglxext.h		\
+	ephyrhostglx.c		\
+	ephyrhostglx.h
+else
 HOSTDRI_SRCS =			\
 	ephyrdriext.c		\
 	ephyrdriext.h		\
@@ -35,16 +54,11 @@ HOSTDRI_SRCS =			\
 	ephyrdri.h		\
 	XF86dri.c		\
 	xf86dri.h		\
-	ephyrdri2ext.c		\
-	ephyrdri2ext.h		\
-	ephyrdri2.c		\
-	ephyrdri2.h		\
-	dri2.c			\
-	dri2.h			\
 	ephyrglxext.c		\
 	ephyrglxext.h		\
 	ephyrhostglx.c		\
 	ephyrhostglx.h
+endif
 
 XEPHYR_SRCS =			\
 	ephyr.c			\
